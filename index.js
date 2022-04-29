@@ -37,31 +37,38 @@ const run = async()=>{
                 query={};
             }
             const cursor = products.find(query);
-            const result= await cursor.toArray()
-            console.log(result)
+            const result= await cursor.toArray();
             res.send(result)
         });
+
         app.get('/singleProduct/:id',async(req,res)=>{
             const id = req?.params?.id
             const query = {_id:ObjectId(id)}
             const result = await products.findOne(query)
             res.send(result);
-        })
-        app.put('/quantityUpdate',async(req,res)=>{
+        });
+
+        app.put('/update',async(req,res)=>{
             const id = req?.body?._id;
             const quantity = req?.body?.quantity;
-            const filter = {_id:ObjectId(id)}
-               // this option instructs the method to create a document if no documents match the filter
-            const options = { upsert: true };
-            const updateDoc = {
-                $set: {
-                    quantity: quantity
-                },
-              };
-            const result = await products.updateOne(filter, updateDoc, options);
-            res.send(result)
+            console.log(quantity)
+            if(id  && parseInt(quantity)>=0){
+                const sold = req?.body?.sold;
+                const filter = {_id:ObjectId(id)}
+                const options = { upsert: true };
+                const updateDoc = {
+                    $set: {
+                        quantity: quantity,
+                        sold:sold
+                    },
+                };
+                const result = await products.updateOne(filter, updateDoc, options);
+                res.send(result)
+            }
+            else{
+                res.send({message:"something went wrong"});
+            }
         })
-
     }
     finally{
 
