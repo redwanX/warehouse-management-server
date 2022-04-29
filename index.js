@@ -47,6 +47,20 @@ const run = async()=>{
             const result = await products.findOne(query)
             res.send(result);
         })
+        app.put('/quantityUpdate',async(req,res)=>{
+            const id = req?.body?._id;
+            const quantity = req?.body?.quantity;
+            const filter = {_id:ObjectId(id)}
+               // this option instructs the method to create a document if no documents match the filter
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    quantity: quantity
+                },
+              };
+            const result = await products.updateOne(filter, updateDoc, options);
+            res.send(result)
+        })
 
     }
     finally{
