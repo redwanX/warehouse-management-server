@@ -51,7 +51,6 @@ const run = async()=>{
         app.put('/update',async(req,res)=>{
             const id = req?.body?._id;
             const quantity = req?.body?.quantity;
-            console.log(quantity)
             if(id  && parseInt(quantity)>=0){
                 const sold = req?.body?.sold;
                 const filter = {_id:ObjectId(id)}
@@ -68,7 +67,20 @@ const run = async()=>{
             else{
                 res.send({message:"something went wrong"});
             }
-        })
+        });
+
+
+        app.delete('/deteteItem/:id',async(req,res)=>{
+            const id=req.params.id;
+            if(id){
+                const query = {_id:ObjectId(id)};
+                const result = await products.deleteOne(query);
+                res.send(result);
+            }
+            else{
+                res.send({message:"something went wrong"});
+            }
+        });
     }
     finally{
 
