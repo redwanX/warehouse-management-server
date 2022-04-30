@@ -1,14 +1,35 @@
-const express = require("express")
-const cors = require("cors")
+const express = require("express");
+const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-require('dotenv').config()
-const port = process.env.PORT||5000
+require('dotenv').config();
+const jwt = require("jsonwebtoken");
+const req = require("express/lib/request");
+const port = process.env.PORT||5000;
 
-const app = express()
+const app = express();
 
 //middleware
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
+
+
+//VerifyJWT
+const VerifyJWT = (req,res,next)=>{
+    email=req.query.email;
+    const authHeader = req.headers.authorization;
+    if(!authHeader || !email){
+        return res.status(401).send({message:'unauthorized access'});
+    }
+    const token= authHeader.split(' ')[1];
+    jwt.verify(token,process.env.JWT_SECRET,(err,decoded)=>{
+        if(err){
+            return res.status(403).send({message:"Forbidden Access"});
+        }
+        req.decoded = decoded;
+    })
+    next();
+}
+
 
 app.get('/',(req,res)=>{
     res.send("server is running");
@@ -19,26 +40,52 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 const run = async()=>{
     try{
-        await client.connect()
-        const products = client.db('furnitures').collection('product')
+        await client.connect();
+        const products = client.db('furnitures').collection('product');
 
+
+
+        //AUTH API
+        app.post('/login',async(req,res)=>{
+            const user = req.body;
+            const token = jwt.sign(user,process.env.JWT_SECRET,{
+                expiresIn:'1d'
+            });
+            res.send({token})
+        });
+
+
+
+
+        //PRODUCTS API
         app.post('/addproduct',async (req,res)=>{
             const result = await products.insertOne(req.body);
             res.send(result);
         });
 
-        app.get('/products',async(req,res)=>{
-            const QueryEmail = req?.query?.email; 
-            let query ;
-            if(QueryEmail){
-                query={email:QueryEmail};
-            }
-            else{
+        app.get('/allproducts',async(req,res)=>{
                 query={};
-            }
             const cursor = products.find(query);
             const result= await cursor.toArray();
-            res.send(result)
+            res.send(result);
+        });
+        app.get('/products',VerifyJWT,async(req,res)=>{
+            const decodedEmail=req?.decoded?.email;
+            const QueryEmail = req?.query?.email;
+            if(decodedEmail === QueryEmail){
+            if(QueryEmail){
+                const query={email:QueryEmail};
+                const cursor = products.find(query);
+                const result= await cursor.toArray();
+                res.send(result);
+            }
+            else{
+                res.send([]);
+            }
+            }
+            else{
+                res.status(403).send({message:"Forbidden Access!"});
+            }
         });
 
         app.get('/singleProduct/:id',async(req,res)=>{
@@ -62,7 +109,7 @@ const run = async()=>{
                     },
                 };
                 const result = await products.updateOne(filter, updateDoc, options);
-                res.send(result)
+                res.send(result);
             }
             else{
                 res.send({message:"something went wrong"});
@@ -86,10 +133,10 @@ const run = async()=>{
 
     }
 }
-run().catch(console.dir)
+run().catch(console.dir);
 
 
 
 
 
-app.listen(port,()=>{console.log(`listening to port: ${port}`)})
+app.listen(port,()=>{console.log(`listening to port: ${port}`)});
