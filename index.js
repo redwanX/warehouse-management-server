@@ -3,7 +3,6 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const jwt = require("jsonwebtoken");
-const req = require("express/lib/request");
 const port = process.env.PORT||5000;
 
 const app = express();
@@ -30,14 +29,15 @@ const VerifyJWT = (req,res,next)=>{
     next();
 }
 
-
+// Index
 app.get('/',(req,res)=>{
     res.send("server is running");
 })
 
-
+//MONGODB CONNECTION
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.jogi2.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
 const run = async()=>{
     try{
         await client.connect();
@@ -58,17 +58,22 @@ const run = async()=>{
 
 
         //PRODUCTS API
+        
+        //ADD PRODUCT
         app.post('/addproduct',async (req,res)=>{
             const result = await products.insertOne(req.body);
             res.send(result);
         });
 
+        //GET ALL PRODUCTS
         app.get('/allproducts',async(req,res)=>{
                 query={};
             const cursor = products.find(query);
             const result= await cursor.toArray();
             res.send(result);
         });
+
+        //GET ONLY PRODUCTS WITH GIVEN EMAIL (JWT)
         app.get('/products',VerifyJWT,async(req,res)=>{
             const decodedEmail=req?.decoded?.email;
             const QueryEmail = req?.query?.email;
@@ -88,6 +93,8 @@ const run = async()=>{
             }
         });
 
+
+        //GET SINGLE PRODUCT WITH ID
         app.get('/singleProduct/:id',async(req,res)=>{
             const id = req?.params?.id
             const query = {_id:ObjectId(id)}
@@ -95,6 +102,8 @@ const run = async()=>{
             res.send(result);
         });
 
+
+        //UPDATE PRODUCT
         app.put('/update',async(req,res)=>{
             const id = req?.body?._id;
             const quantity = req?.body?.quantity;
@@ -116,7 +125,7 @@ const run = async()=>{
             }
         });
 
-
+        //DELETE PRODUCT
         app.delete('/deteteItem/:id',async(req,res)=>{
             const id=req.params.id;
             if(id){
@@ -138,5 +147,5 @@ run().catch(console.dir);
 
 
 
-
+//LISTENING TO PORT
 app.listen(port,()=>{console.log(`listening to port: ${port}`)});
