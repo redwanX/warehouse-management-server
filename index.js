@@ -12,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 
+
 //VerifyJWT
 const VerifyJWT = (req,res,next)=>{
     email=req.query.email;
@@ -25,8 +26,8 @@ const VerifyJWT = (req,res,next)=>{
             return res.status(403).send({message:"Forbidden Access"});
         }
         req.decoded = decoded;
+         next();
     })
-    next();
 }
 
 // Index
@@ -42,6 +43,39 @@ const run = async()=>{
     try{
         await client.connect();
         const products = client.db('furnitures').collection('product');
+        const feedback = client.db('furnitures').collection('feedback');
+        const activity = client.db('furnitures').collection('activity');
+
+        
+
+        // Activity set
+        const setActivity = async (req)=>{
+            let logs= req.query;
+            const today = new Date();
+            logs.date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+            const res= await activity.insertOne(logs);
+            return res;
+        }
+
+        //GET ACTIVITIES
+        app.get('/getActivity',VerifyJWT,async(req,res)=>{
+            const decodedEmail=req?.decoded?.email;
+            const QueryEmail = req?.query?.email;
+            if(decodedEmail === QueryEmail){
+            if(QueryEmail){
+                const query={email:QueryEmail};
+                const cursor = activity.find(query);
+                const result= await cursor.toArray();
+                res.send(result);
+            }
+            else{
+                res.send([]);
+            }
+            }
+            else{
+                res.status(403).send({message:"Forbidden Access!"});
+            }
+        });
 
 
 
@@ -55,6 +89,11 @@ const run = async()=>{
         });
 
 
+        //FEEDBACK
+        app.post('/feedback',async(req,res)=>{
+            const result = await feedback.insertOne(req.body);
+            res.send(result);
+        });
 
 
         //PRODUCTS API
@@ -62,6 +101,7 @@ const run = async()=>{
         //ADD PRODUCT
         app.post('/addproduct',async (req,res)=>{
             const result = await products.insertOne(req.body);
+            const activity=await setActivity(req);
             res.send(result);
         });
 
@@ -131,6 +171,7 @@ const run = async()=>{
             if(id){
                 const query = {_id:ObjectId(id)};
                 const result = await products.deleteOne(query);
+                const activity=await setActivity(req);
                 res.send(result);
             }
             else{
