@@ -51,6 +51,9 @@ const run = async()=>{
         // Activity set
         const setActivity = async (req)=>{
             let logs= req.query;
+            if(!logs){
+                logs = {}
+            }
             const today = new Date();
             logs.date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
             const res= await activity.insertOne(logs);
@@ -136,10 +139,15 @@ const run = async()=>{
 
         //GET SINGLE PRODUCT WITH ID
         app.get('/singleProduct/:id',async(req,res)=>{
+            try{
             const id = req?.params?.id
             const query = {_id:ObjectId(id)}
             const result = await products.findOne(query)
             res.send(result);
+            }
+            catch{
+                res.send({})
+            }
         });
 
 
@@ -166,8 +174,9 @@ const run = async()=>{
         });
 
         //DELETE PRODUCT
-        app.delete('/deteteItem/:id',async(req,res)=>{
-            const id=req.params.id;
+        app.delete('/deleteItem/:id',async(req,res)=>{
+            try{
+                const id=req.params.id;
             if(id){
                 const query = {_id:ObjectId(id)};
                 const result = await products.deleteOne(query);
@@ -175,6 +184,10 @@ const run = async()=>{
                 res.send(result);
             }
             else{
+                res.send({message:"something went wrong"});
+            }
+            }
+            catch{
                 res.send({message:"something went wrong"});
             }
         });
